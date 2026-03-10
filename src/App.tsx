@@ -9,8 +9,18 @@ import { Moon, Sparkles, Send, Loader2, RefreshCw } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import Markdown from 'react-markdown';
 
-// Initialize Gemini API
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Initialize Gemini API lazily to prevent crashes if key is missing on load
+let ai: GoogleGenAI | null = null;
+const getAI = () => {
+  if (!ai) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is missing. Please set it in your environment variables.");
+    }
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
+};
 
 export default function App() {
   const [dream, setDream] = useState('');
@@ -29,7 +39,8 @@ export default function App() {
     setInterpretation('');
 
     try {
-      const response = await ai.models.generateContent({
+      const aiClient = getAI();
+      const response = await aiClient.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `Sen uzman bir rüya tabircisisin. Kullanıcının gördüğü rüyayı derinlemesine, sembolik ve psikolojik açılardan analiz et. 
         Yanıtını Türkçe olarak, modern ve anlaşılır bir dille ver. Markdown formatı kullan.
